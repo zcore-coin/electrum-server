@@ -52,7 +52,9 @@ class Prefetcher(object):
         while True:
             try:
                 # Sleep a while if there is nothing to prefetch
+                self.logger.info(f'main_loop() refill_event.wait() -> starts')
                 await self.refill_event.wait()
+                self.logger.info(f'main_loop() refill_event.wait() -> awake now')
                 if not await self._prefetch_blocks():
                     await asyncio.sleep(self.polling_delay)
             except DaemonError as e:
@@ -73,6 +75,7 @@ class Prefetcher(object):
         called asynchronously to the _prefetch_blocks coroutine so we
         must synchronize with a semaphore.
         '''
+        self.logger.info(f'reset_height() entered')
         async with self.semaphore:
             self.blocks.clear()
             self.cache_size = 0
@@ -212,6 +215,7 @@ class BlockProcessor(object):
                 self.logger.info('processed {:,d} block{} in {:.1f}s'
                                  .format(len(blocks), s,
                                          time.time() - start))
+            self.logger.info(f"check_and_advance_blocks(). caught up? {self._caught_up_event.is_set()}")
             if self._caught_up_event.is_set():
                 await self.notifications.on_block(self.touched, self.height)
             self.touched = set()
@@ -605,17 +609,21 @@ class BlockProcessor(object):
     async def _process_prefetched_blocks(self):
         '''Loop forever processing blocks as they arrive.'''
         while True:
+            self.logger.info(f'_process_prefetched_blocks() iter starts. {self.height} {self.daemon.cached_height()}')
             if self.height == self.daemon.cached_height():
                 if not self._caught_up_event.is_set():
                     await self._first_caught_up()
                     self._caught_up_event.set()
+            self.logger.info(f'_process_prefetched_blocks {self.height}. blocks_event.wait() -> starts')
             await self.blocks_event.wait()
+            self.logger.info(f'_process_prefetched_blocks {self.height}. blocks_event.wait() -> awake now. {self.reorg_count}')
             self.blocks_event.clear()
             if self.reorg_count:
                 await self.reorg_chain(self.reorg_count)
                 self.reorg_count = 0
             else:
                 blocks = self.prefetcher.get_prefetched_blocks()
+                self.logger.info(f'_process_prefetched_blocks() calling check_and_advance_blocks. {len(blocks)}')
                 await self.check_and_advance_blocks(blocks)
 
     async def _first_caught_up(self):

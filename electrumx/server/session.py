@@ -343,6 +343,7 @@ class SessionManager(object):
         '''Refresh the cached header subscription responses to be for height,
         and record that as notified_height.
         '''
+        self.logger.info(f"_refresh_hsub_results() entered. {height} {self.db.db_height}")
         # Paranoia: a reorg could race and leave db_height lower
         height = min(height, self.db.db_height)
         electrum, raw = await self._electrum_and_raw_headers(height)
@@ -560,6 +561,7 @@ class SessionManager(object):
     async def _notify_sessions(self, height, touched):
         '''Notify sessions about height changes and touched addresses.'''
         height_changed = height != self.notified_height
+        self.logger.info(f"_notify_sessions() entered. {height} {len(touched)} {self.notified_height}")
         if height_changed:
             await self._refresh_hsub_results(height)
             # Invalidate our history cache for touched hashXs

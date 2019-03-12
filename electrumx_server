@@ -12,6 +12,7 @@
 import logging
 import sys
 import traceback
+import os
 
 from electrumx import Controller, Env
 from electrumx.lib.util import CompactFormatter, make_logger
@@ -19,14 +20,17 @@ from electrumx.lib.util import CompactFormatter, make_logger
 
 def main():
     '''Set up logging and run the server.'''
+    env = Env()
     log_fmt = Env.default('LOG_FORMAT', '%(levelname)s:%(name)s:%(message)s')
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(CompactFormatter(log_fmt))
-    make_logger('electrumx', handler=handler, level=logging.INFO)
+    handler1 = logging.StreamHandler(sys.stdout)
+    handler1.setFormatter(CompactFormatter(log_fmt))
+    handler2 = logging.FileHandler(os.path.join(env.db_dir, "logfile"))
+    handler2.setFormatter(CompactFormatter(log_fmt))
+    make_logger('electrumx', handlers=[handler1, handler2], level=logging.INFO)
 
     logging.info('ElectrumX server starting')
     try:
-        controller = Controller(Env())
+        controller = Controller(env)
         controller.run()
     except Exception:
         traceback.print_exc()

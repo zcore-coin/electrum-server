@@ -215,7 +215,9 @@ class MemPool(object):
         while True:
             height = self.api.cached_height()
             hex_hashes = await self.api.mempool_hashes()
-            if height != await self.api.height():
+            api_height = await self.api.height()
+            self.logger.info(f'_refresh_hashes(). {height} {api_height}')
+            if height != api_height:
                 continue
             hashes = set(hex_str_to_hash(hh) for hh in hex_hashes)
             try:
@@ -224,8 +226,9 @@ class MemPool(object):
             except DBSyncError:
                 # The UTXO DB is not at the same height as the
                 # mempool; wait and try again
-                self.logger.debug('waiting for DB to sync')
+                self.logger.info('waiting for DB to sync')
             else:
+                self.logger.info('synchronized_event.set()')
                 synchronized_event.set()
                 synchronized_event.clear()
                 await self.api.on_mempool(touched, height)
