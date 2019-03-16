@@ -35,6 +35,7 @@ import re
 import sys
 from collections.abc import Container, Mapping
 from struct import pack, Struct
+import datetime
 
 # Logging utilities
 
@@ -51,6 +52,12 @@ class CompactFormatter(logging.Formatter):
     def format(self, record):
         record.name = record.name.rpartition('.')[-1]
         return super().format(record)
+
+    def formatTime(self, record, datefmt=None):
+        current_time = datetime.datetime.fromtimestamp(record.created).astimezone(datetime.timezone.utc)
+        if not datefmt:
+            datefmt = "%Y%m%dT%H%M%S.%fZ"
+        return current_time.strftime(datefmt)
 
 
 def make_logger(name, *, handlers, level):
