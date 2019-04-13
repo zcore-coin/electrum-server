@@ -52,13 +52,14 @@ class Prefetcher(object):
         while True:
             try:
                 # Sleep a while if there is nothing to prefetch
-                self.logger.info(f'main_loop() refill_event.wait() -> starts')
                 await self.refill_event.wait()
-                self.logger.info(f'main_loop() refill_event.wait() -> awake now')
                 if not await self._prefetch_blocks():
                     await asyncio.sleep(self.polling_delay)
             except DaemonError as e:
                 self.logger.info(f'ignoring daemon error: {e}')
+            except BaseException as e:
+                self.logger.info(f'main_loop: unexpected exception: {type(e)} {e}')
+                raise
 
     def get_prefetched_blocks(self):
         '''Called by block processor when it is processing queued blocks.'''
@@ -97,37 +98,28 @@ class Prefetcher(object):
 
         Repeats until the queue is full or caught up.
         '''
-        self.logger.info(f'_prefetch_blocks() entered')
         daemon = self.daemon
+        self.logger.info(f'_prefetch_blocks: getting daemon height...')
         daemon_height = await daemon.height()
-        self.logger.info(f'_prefetch_blocks() daemon_height: {daemon_height}')
+        self.logger.info(f'_prefetch_blocks: daemon_height {daemon_height}')
         async with self.semaphore:
-            self.logger.info(f'_prefetch_blocks() got semaphore. cache_size: {self.cache_size}, min_cache_size {self.min_cache_size}')
             while self.cache_size < self.min_cache_size:
                 # Try and catch up all blocks but limit to room in cache.
                 # Constrain fetch count to between 0 and 100 regardless;
                 # some chains can be lumpy.
                 cache_room = max(self.min_cache_size // self.ave_size, 1)
-                self.logger.info(f'_prefetch_blocks(). self.ave_size {self.ave_size}, cache_room {cache_room}')
                 count = min(daemon_height - self.fetched_height, cache_room)
-                self.logger.info(f'_prefetch_blocks(). count1 {repr(count)}, fetched_height {self.fetched_height}')
                 count = min(100, max(count, 0))
-                self.logger.info(f'_prefetch_blocks(). count2 {repr(count)}')
                 if not count:
                     self.caught_up = True
-                    self.logger.info(f'_prefetch_blocks() exiting with False')
                     return False
 
                 first = self.fetched_height + 1
-                self.logger.info(f'_prefetch_blocks(). daemon.block_hex_hashes() called.')
                 hex_hashes = await daemon.block_hex_hashes(first, count)
-                self.logger.info(f'_prefetch_blocks(). daemon.block_hex_hashes() returned.')
                 if self.caught_up:
                     self.logger.info('new block height {:,d} hash {}'
                                      .format(first + count-1, hex_hashes[-1]))
-                self.logger.info(f'_prefetch_blocks(). daemon.raw_blocks() called.')
                 blocks = await daemon.raw_blocks(hex_hashes)
-                self.logger.info(f'_prefetch_blocks(). daemon.raw_blocks() returned.')
 
                 assert count == len(blocks)
 
@@ -144,14 +136,12 @@ class Prefetcher(object):
                 else:
                     self.ave_size = (size + (10 - count) * self.ave_size) // 10
 
-                self.logger.info(f'_prefetch_blocks(). near end; sanity check.')
                 self.blocks.extend(blocks)
                 self.cache_size += size
                 self.fetched_height += count
                 self.blocks_event.set()
 
         self.refill_event.clear()
-        self.logger.info(f'_prefetch_blocks() exiting with True')
         return True
 
 
