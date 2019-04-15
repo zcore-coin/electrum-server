@@ -58,7 +58,7 @@ class Prefetcher(object):
             except DaemonError as e:
                 self.logger.info(f'ignoring daemon error: {e}')
             except BaseException as e:
-                self.logger.info(f'main_loop: unexpected exception: {type(e)} {e}')
+                self.logger.exception(f'main_loop: unexpected exception: {type(e)} {e}')
                 raise
 
     def get_prefetched_blocks(self):
