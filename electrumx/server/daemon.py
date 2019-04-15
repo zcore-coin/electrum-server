@@ -149,9 +149,6 @@ class Daemon(object):
             except WorkQueueFullError:
                 log_error('work queue full.')
                 on_good_message = 'running normally'
-            except BaseException as e:
-                self.logger.exception(f'_send: unexpected exception: {type(e)} {e}')
-                raise
 
             await asyncio.sleep(retry)
             retry = max(min(self.max_retry, retry * 2), self.init_retry)
