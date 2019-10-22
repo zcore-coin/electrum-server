@@ -370,6 +370,38 @@ class NameMixin(object):
         return n
 
 
+class ZCore(Coin):
+    NAME = "ZCore"
+    SHORTNAME = "ZCR"
+    NET = "mainnet"
+    XPUB_VERBYTES = bytes.fromhex("04B24746")
+    XPRV_VERBYTES = bytes.fromhex("04B24308")
+    P2PKH_VERBYTE = bytes.fromhex("8e")
+    P2SH_VERBYTES = [bytes.fromhex("91")]
+    WIF_BYTE = bytes.fromhex("50")
+    GENESIS_HASH = ('695b79c8c234b45b2eeb4722f33373e4'
+                    '71c9b686ff78efeb39da95f824a9f81b')
+    BASIC_HEADER_SIZE = 112
+    TX_COUNT = 64895
+    TX_COUNT_HEIGHT = 30000
+    TX_PER_BLOCK = 2
+    RPC_PORT = 17293
+    DESERIALIZER = lib_tx.DeserializerSegWit
+
+    @classmethod
+    def static_header_offset(cls, height):
+        print(height)
+        return height * cls.BASIC_HEADER_SIZE
+
+    @classmethod
+    def header_hash(cls, header):
+        version, = util.unpack_le_uint32_from(header)
+        if version >= 4:
+            return super().header_hash(header)
+        else:
+            import quark_hash
+            return quark_hash.getPoWHash(header)
+
 class HOdlcoin(Coin):
     NAME = "HOdlcoin"
     SHORTNAME = "HODLC"
