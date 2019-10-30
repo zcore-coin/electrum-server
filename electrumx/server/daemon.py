@@ -285,11 +285,11 @@ class DashDaemon(Daemon):
 
     async def masternode_broadcast(self, params):
         '''Broadcast a transaction to the network.'''
-        return await self._send_single('masternodebroadcast', params)
+        return await self._send_single('relaymasternodebroadcast', params)
 
     async def masternode_list(self, params):
         '''Return the masternode status.'''
-        return await self._send_single('masternodelist', params)
+        return await self._send_single('listmasternodes', params)
 
     async def protx(self, params):
         '''Set of commands to execute ProTx related actions.'''
@@ -470,15 +470,15 @@ class SmartCashDaemon(Daemon):
 
     async def masternode_broadcast(self, params):
         '''Broadcast a smartnode to the network.'''
-        return await self._send_single('smartnodebroadcast', params)
+        return await self._send_single('relaymasternodebroadcast', params)
 
     async def masternode_list(self, params):
         '''Return the smartnode status.'''
-        return await self._send_single('smartnodelist', params)
+        return await self._send_single('listmasternodes', params)
 
     async def smartrewards(self, params):
         '''Return smartrewards data.'''
-        return await self._send_single('smartrewards', params)
+        return await self._send_single('getutxos', params)
 
 
 class ZcoinMtpDaemon(Daemon):

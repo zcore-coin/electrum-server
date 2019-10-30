@@ -1450,9 +1450,16 @@ class DashElectrumX(ElectrumX):
         await super().notify(touched, height_changed)
         for mn in self.mns.copy():
             status = await self.daemon_request('masternode_list',
-                                               ['status', mn])
+                                               [mn])
+            print('notify',mn,len(status))
+            mx = None
+            if isinstance(status,list):
+               if len(status) > 0:
+                 mx = status[0]
+            else:
+               mx = status.get(mn)
             await self.send_notification('masternode.subscribe',
-                                         [mn, status.get(mn)])
+                                         [mn, mx])
 
     # Masternode command handlers
     async def masternode_announce_broadcast(self, signmnb):
@@ -1462,7 +1469,7 @@ class DashElectrumX(ElectrumX):
         signmnb: signed masternode broadcast message.'''
         try:
             return await self.daemon_request('masternode_broadcast',
-                                             ['relay', signmnb])
+                                             [signmnb])
         except DaemonError as e:
             error, = e.args
             message = error['message']
@@ -1476,10 +1483,16 @@ class DashElectrumX(ElectrumX):
         collateral: masternode collateral.
         '''
         result = await self.daemon_request('masternode_list',
-                                           ['status', collateral])
+                                           [collateral])
+        print('sub',len(result),collateral)
         if result is not None:
-            self.mns.add(collateral)
-            return result.get(collateral)
+            if isinstance(result,list):
+               if len(result) > 0:
+                 self.mns.add(collateral)
+                 return result[0]
+            else:
+               self.mns.add(collateral)
+               return result.get(collateral)
         return None
 
     async def masternode_list(self, payees):
@@ -1541,7 +1554,8 @@ class DashElectrumX(ElectrumX):
         cache = self.session_mgr.mn_cache
         if not cache or self.session_mgr.mn_cache_height != self.db.db_height:
             full_mn_list = await self.daemon_request('masternode_list',
-                                                     ['full'])
+                                                     [])
+            print('full list', full_mn_list)
             mn_payment_queue = get_masternode_payment_queue(full_mn_list)
             mn_payment_count = len(mn_payment_queue)
             mn_list = []

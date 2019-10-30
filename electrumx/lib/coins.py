@@ -388,9 +388,11 @@ class ZCore(Coin):
     RPC_PORT = 17293
     DESERIALIZER = lib_tx.DeserializerSegWit
 
+    DAEMON = daemon.DashDaemon
+    SESSIONCLS = DashElectrumX
+
     @classmethod
     def static_header_offset(cls, height):
-        print(height)
         return height * cls.BASIC_HEADER_SIZE
 
     @classmethod
